@@ -1,12 +1,13 @@
 #!/usr/bin/env python
 
 import argparse
-
 import logging
 import sys
 import traceback
 
 import PySimpleGUI as sg
+
+from license import LICENSE
 
 from scripts import pwgen_5dec
 from scripts import pwgen_asus
@@ -171,7 +172,6 @@ def main():
 
     try:
         # Set up GUI components
-        # TODO license menu
         menu = [
             ['&File', 'E&xit'],
             ['&Help', ['&License', '&About']],
@@ -211,7 +211,7 @@ def main():
                 if event == 'Exit':
                     break
                 elif event == 'License':
-                    sg.Popup('License', 'License text goes here')
+                    sg.PopupScrolled('License', '', LICENSE)
                 elif event == 'About':
                     sg.Popup('About', 'About text goes here')
 
