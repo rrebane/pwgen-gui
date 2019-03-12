@@ -87,7 +87,7 @@ MODULES = [
         'example': '12345',
         'module': pwgen_5dec,
     },
-    {
+    { # TODO this is currently broken
         'vendor': 'Sony',
         'encoding': '4x4 hexadecimal digits',
         'example': '1234-1234-1234-1234',
@@ -99,7 +99,7 @@ MODULES = [
         'example': '1234567',
         'module': pwgen_sony_serial,
     },
-    {
+    { # TODO this is currently broken
         'vendor': 'Samsung',
         'encoding': '12 hexadecimal digits',
         'example': '07088120410C0000',
@@ -213,6 +213,7 @@ def main():
                 elif event == 'License':
                     sg.PopupScrolled('License', '', LICENSE)
                 elif event == 'About':
+                    # TODO about text
                     sg.Popup('About', 'About text goes here')
 
                 # Show module info
