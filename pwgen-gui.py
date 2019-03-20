@@ -2,6 +2,7 @@
 
 import argparse
 import logging
+import re
 import sys
 import traceback
 
@@ -30,84 +31,98 @@ MODULES = [
         'vendor': 'Asus',
         'encoding': 'Machine Date',
         'example': '01-01-2011',
+        'validation': re.compile(r'\s*\d{2}-\d{2}-\d{4}\s*'),
         'module': pwgen_asus,
     },
     {
         'vendor': 'Compaq',
         'encoding': '5 decimal digits',
         'example': '12345',
+        'validation': re.compile(r'\s*\d{5}\s*'),
         'module': pwgen_5dec,
     },
     {
         'vendor': 'Fujitsu-Siemens',
         'encoding': '5 decimal digits',
         'example': '12345',
+        'validation': re.compile(r'\s*\d{5}\s*'),
         'module': pwgen_5dec,
     },
     {
         'vendor': 'Fujitsu-Siemens',
         'encoding': '8 hexadecimal digits',
         'example': 'DEADBEEF',
+        'validation': re.compile(r'\s*[0-9a-fA-F]{8}\s*'),
         'module': pwgen_fsi_hex,
     },
     {
         'vendor': 'Fujitsu-Siemens',
         'encoding': '5x4 hexadecimal digits',
         'example': 'AAAA-BBBB-CCCC-DEAD-BEEF',
+        'validation': re.compile(r'\s*[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}\s*'),
         'module': pwgen_fsi_hex,
     },
     {
         'vendor': 'Fujitsu-Siemens',
         'encoding': '5x4 decimal digits',
         'example': '1234-4321-1234-4321-1234',
+        'validation': re.compile(r'\s*\d{4}-\d{4}-\d{4}-\d{4}-\d{4}\s*'),
         'module': pwgen_fsi_5x4dec,
     },
     {
         'vendor': 'Fujitsu-Siemens',
         'encoding': '6x4 decimal digits',
         'example': '8F16-1234-4321-1234-4321-1234',
+        'validation': re.compile(r'\s*[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}\s*'),
         'module': pwgen_fsi_6x4dec,
     },
     {
         'vendor': 'Hewlett-Packard',
         'encoding': '5 decimal digits',
         'example': '12345',
+        'validation': re.compile(r'\s*\d{5}\s*'),
         'module': pwgen_5dec,
     },
     {
         'vendor': 'Hewlett-Packard/Compaq Netbooks',
         'encoding': '10 characters',
         'example': 'CNU1234ABC',
+        'validation': re.compile(r'\s*\w{10}\s*'),
         'module': pwgen_hpmini,
     },
     {
         'vendor': 'Insyde H20 (generic)',
         'encoding': '8 decimal digits',
         'example': '03133610',
+        'validation': re.compile(r'\s*\d{8}\s*'),
         'module': pwgen_insyde,
     },
     {
         'vendor': 'Phoenix (generic)',
         'encoding': '5 decimal digits',
         'example': '12345',
+        'validation': re.compile(r'\s*\d{5}\s*'),
         'module': pwgen_5dec,
     },
     { # TODO this is currently broken
         'vendor': 'Sony',
         'encoding': '4x4 hexadecimal digits',
         'example': '1234-1234-1234-1234',
+        'validation': re.compile(r'\s*\d{4}-\d{4}-\d{4}-\d{4}\s*'),
         'module': pwgen_sony_4x4,
     },
     {
         'vendor': 'Sony',
         'encoding': '7 digit serial number',
         'example': '1234567',
+        'validation': re.compile(r'\s*\d{7}\s*'),
         'module': pwgen_sony_serial,
     },
     { # TODO this is currently broken
         'vendor': 'Samsung',
         'encoding': '12 hexadecimal digits',
         'example': '07088120410C0000',
+        'validation': re.compile(r'\s*[0-9a-fA-F]{12}\s*'),
         'module': pwgen_samsung,
     },
 ]
@@ -237,20 +252,30 @@ def main():
                 # Run module
                 if event == 'Run' and INPUT_TAG in values and MODULE_TAG in values:
                     module = selected_module(values[MODULE_TAG])
+
+                    # Do nothing, if input is empty
                     if module and values[INPUT_TAG]:
-                        logger.info('Running module with input: \'%s\'', values[INPUT_TAG])
-                        print('Running module with input: \'{}\''.format(values[INPUT_TAG]))
+                        module_input = values[INPUT_TAG]
+                        logger.info('Running module with input: \'%s\'', module_input)
+                        print('Running module with input: \'{}\''.format(module_input))
                         window.Refresh()
-                        try:
-                            module['module'].run(values[INPUT_TAG])
-                        except:
-                            formatted_lines = traceback.format_exc()
-                            logger.error('Error while running module.'
-                                         ' Check if the input has the correct format.')
-                            logger.error(formatted_lines)
-                            print('Error while running module.'
-                                  ' Check if the input has the correct format.')
-                            print(formatted_lines)
+
+                        # Check if input matches the validation regex
+                        if module['validation'].match(module_input):
+                            try:
+                                module['module'].run(values[INPUT_TAG])
+                            except:
+                                formatted_lines = traceback.format_exc()
+                                logger.error('Error while running module.'
+                                             ' Check if the input has the correct format.')
+                                logger.error(formatted_lines)
+                                print('Error while running module.'
+                                      ' Check if the input has the correct format.')
+                                print(formatted_lines)
+                        else:
+                            logger.error('Invalid input: \'%s\'', module_input)
+                            print('Invalid input: \'{}\''.format(module_input))
+                            window.Refresh()
         finally:
             window.Close()
     except:
