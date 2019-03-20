@@ -20,6 +20,11 @@ from scripts import pwgen_samsung
 from scripts import pwgen_sony_4x4
 from scripts import pwgen_sony_serial
 
+VERSION_MAJOR = 0
+VERSION_MINOR = 1
+VERSION_PATCH = 0
+VERSION_STR = '{}.{}.{}'.format(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
+
 MODULES = [
     {
         'vendor': 'Asus',
@@ -128,7 +133,14 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--logfile', help='File for log info')
     parser.add_argument('--loglevel', help='Log level (CRITICAL, ERROR, WARNING, INFO, DEBUG)')
+    parser.add_argument('--version', help='Print version and exit',
+                        action='store_true')
     args = parser.parse_args()
+
+    # Print version
+    if args.version:
+        print(VERSION_STR)
+        sys.exit(0)
 
     # Set up logging
     logger = logging.getLogger(__name__)
