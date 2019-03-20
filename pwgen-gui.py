@@ -214,13 +214,20 @@ def main():
             ABOUT_TEXT,
         ])
 
+        # Find the longest info text
+        info_maxlines = 0
+        for module in MODULES:
+            lines = len(module['module'].info().splitlines())
+            if lines > info_maxlines:
+                info_maxlines = lines
+
+        info_text = sg.Text(MODULES[0]['module'].info(), size=(78, info_maxlines))
+
         # Set up GUI components
         menu = [
             ['&File', 'E&xit'],
             ['&Help', ['&License', '&About']],
         ]
-
-        info_text = sg.Text(MODULES[1]['module'].info())
 
         layout = [
             [sg.Menu(menu)],
@@ -231,13 +238,16 @@ def main():
                            readonly=True)],
             [sg.Frame('Module Info', [[info_text]], size=(80, 100))],
             [sg.Text('Input'),
-             sg.InputText('', key=INPUT_TAG, do_not_clear=True)],
+             sg.InputText('', key=INPUT_TAG, do_not_clear=True),
+             sg.Button('Run', bind_return_key=True)],
             [sg.Text('Output')],
             [sg.Output(size=(80, 20))],
-            [sg.Button('Run')],
         ]
 
-        window = sg.Window('Pwgen GUI', default_element_size=(40, 1), grab_anywhere=False)
+        # Tried resizable=True, but since the inner components do not resize
+        # properly, it is not very useful.
+        window = sg.Window('Pwgen GUI', auto_size_text=True,
+                           auto_size_buttons=True, grab_anywhere=False)
         window.Layout(layout)
 
         # Main loop
