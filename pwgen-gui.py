@@ -8,6 +8,7 @@ import traceback
 
 import PySimpleGUI as sg
 
+from about import ABOUT_TEXT, ABOUT_IMAGE_BASE64
 from license import LICENSE
 
 from scripts import pwgen_5dec
@@ -206,6 +207,13 @@ def main():
         sys.exit(1)
 
     try:
+        # Format the about page information
+        about_body = '\n'.join([
+            'Pwgen GUI {}'.format(VERSION_STR),
+            '',
+            ABOUT_TEXT,
+        ])
+
         # Set up GUI components
         menu = [
             ['&File', 'E&xit'],
@@ -248,8 +256,8 @@ def main():
                 elif event == 'License':
                     sg.PopupScrolled('License', '', LICENSE)
                 elif event == 'About':
-                    # TODO about text
-                    sg.Popup('About', 'About text goes here')
+                    # TODO about contents
+                    sg.Popup('About', about_body)
 
                 # Show module info
                 if event == MODULE_TAG and MODULE_TAG in values:
