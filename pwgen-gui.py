@@ -12,6 +12,7 @@ from license import LICENSE
 
 from scripts import pwgen_5dec
 from scripts import pwgen_asus
+from scripts import pwgen_dell
 from scripts import pwgen_fsi_5x4dec
 from scripts import pwgen_fsi_6x4dec
 from scripts import pwgen_fsi_hex
@@ -40,6 +41,13 @@ MODULES = [
         'example': '12345',
         'validation': re.compile(r'\s*\d{5}\s*'),
         'module': pwgen_5dec,
+    },
+    {
+        'vendor': 'Dell',
+        'encoding': 'serial number',
+        'example': '1234567-595B',
+        'validation': re.compile(r'\s*\w{7}-\w{4}\s*'),
+        'module': pwgen_dell,
     },
     {
         'vendor': 'Fujitsu-Siemens',
