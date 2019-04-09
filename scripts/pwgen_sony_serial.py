@@ -18,10 +18,11 @@
 #
 import os, struct
 
+from scripts.solver import Solver, SolverError
+
 def getMasterPwd(serial):
     if len(serial) != 7:
-        print("The serial must be exactly 7 characters in length!")
-        return
+        raise SolverError("The serial must be exactly 7 characters in length!")
 
     table = "0987654321876543210976543210982109876543109876543221098765436543210987"
     pos = 0
@@ -29,7 +30,21 @@ def getMasterPwd(serial):
     for c in serial:
         code += table[int(c)+10*pos]
         pos += 1
+
     return code
+
+def sonySolver(in_str):
+    in_str = in_str.strip()
+    return getMasterPwd(in_str)
+
+def solvers():
+    return [
+        Solver('Sony',
+               'Sony 7 decimal digits',
+               ['1234567'],
+               r'^\s*\d{7}\s*$',
+               sonySolver),
+    ]
 
 def info():
     return '\n'.join([
@@ -45,10 +60,14 @@ def run(in_str = None):
         print(info())
         in_str = input("Please enter the serial number: ")
 
-    code = in_str
-    password = getMasterPwd(code)
-    if password:
-        print(("The password is: " + password))
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
+
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

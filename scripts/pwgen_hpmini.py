@@ -19,6 +19,8 @@
 
 import os
 
+from scripts.solver import Solver, SolverError
+
 def decode(code):
     table1 = {'1': '3', '0': '1', '3': 'F', '2': '7', '5': 'Q', '4': 'V', '7': 'X', '6': 'G', '9': 'O', '8': 'U', 'a': 'C', 'c': 'E', 'b': 'P', 'e': 'M', 'd': 'T', 'g': 'H', 'f': '8', 'i': 'Y', 'h': 'Z', 'k': 'S', 'j': 'W', 'm': '4', 'l': 'K', 'o': 'J', 'n': '9', 'q': '5', 'p': '2', 's': 'N', 'r': 'B', 'u': 'L', 't': 'A', 'w': 'D', 'v': '6', 'y': 'I', 'x': '4', 'z': '0'}
     table2 = {'1': '3', '0': '1', '3': 'F', '2': '7', '5': 'Q', '4': 'V', '7': 'X', '6': 'G', '9': 'O', '8': 'U', 'a': 'C', 'c': 'E', 'b': 'P', 'e': 'M', 'd': 'T', 'g': 'H', 'f': '8', 'i': 'Y', 'h': 'Z', 'k': 'S', 'j': 'W', 'm': '4', 'l': 'K', 'o': 'J', 'n': '9', 'q': '5', 'p': '2', 's': 'N', 'r': 'B', 'u': 'L', 't': 'A', 'w': 'D', 'v': '6', 'y': 'I', 'x': 'R', 'z': '0'}
@@ -39,6 +41,22 @@ def decryptHash(hash, key, rotationMatrix):
         outhash.append(((hash[i] << (rotationMatrix[7*key+i])) & 0xFF) | (hash[i] >> (8-rotationMatrix[7*key+i])))
     return outhash
 
+def hpminiSolver(in_str):
+    code = in_str
+    password = decode(code)
+    if password == "":
+        raise SolverError("The password could not be calculated")
+    return password
+
+def solvers():
+    return [
+        Solver('Hewlett-Packard/Compaq',
+               'HP/Compaq Netbook 10 character',
+               ['CNU1234ABC'],
+               r'^\s*\w{10}\s*$',
+               hpminiSolver),
+    ]
+
 def info():
     return '\n'.join([
         "Master Password Generator for HP/Compaq Mini Netbooks",
@@ -54,12 +72,14 @@ def run(in_str = None):
         print(info())
         in_str = input("Please enter the code: ")
 
-    code = in_str
-    password = decode(code)
-    if password == "":
-        print("The password could not be calculated. Bummer.")
-    else:
-        print(("The password is: " + password))
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
+
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

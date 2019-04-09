@@ -23,6 +23,8 @@
 
 import os
 
+from scripts.solver import Solver, SolverError
+
 # someone smacked his head onto the keyboard
 XORkey = "<7#&9?>s"
 
@@ -70,6 +72,20 @@ def decryptCode(bytes):
         masterPwd += byteToChar(x)
     return masterPwd
 
+def fsi6x4Solver(in_str):
+    in_str = in_str.strip().replace('-', '').replace(' ', '')
+    in_str = in_str[4:]
+    return decryptCode(codeToBytes(in_str))
+
+def solvers():
+    return [
+        Solver('Fujitsu-Siemens',
+               'Fujitsu-Siemens 6x4 decimal',
+               ['8F16-1234-4321-1234-4321-1234'],
+               r'^\s*\w{4}-\d{4}-\d{4}-\d{4}-\d{4}-\d{4}\s*$',
+               fsi6x4Solver),
+    ]
+
 def info():
     return '\n'.join([
         "Master Password Generator for FSI laptops (6x4 digits version)",
@@ -91,10 +107,14 @@ def run(in_str = None):
         print(info())
         in_str = input("Please enter the hash: ")
 
-    inHash = in_str.strip().replace('-', '').replace(' ', '')
-    inHash = inHash[4:]
-    password = decryptCode(codeToBytes(inHash))
-    print(("The master password is: " + password))
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
+
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

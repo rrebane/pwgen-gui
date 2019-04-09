@@ -23,6 +23,8 @@
 
 import os
 
+from scripts.solver import Solver, SolverError
+
 def calcPassword(strHash):
     salt = 'Iou|hj&Z'
 
@@ -37,6 +39,19 @@ def calcPassword(strHash):
         a *= 10
         pwd += str(b-a)
     return pwd
+
+def insydeSolver(in_str):
+    in_str = in_str.strip().replace('-', '')
+    return calcPassword(in_str)
+
+def solvers():
+    return [
+        Solver('Insyde H20 (generic)',
+               'Insyde H20 (generic) 8 decimal digits',
+               ['03133610'],
+               r'^\s*\d{8}\s*$',
+               insydeSolver),
+    ]
 
 def info():
     return '\n'.join([
@@ -55,9 +70,14 @@ def run(in_str = None):
         print(info())
         in_str = input("Please enter the hash: ")
 
-    inHash = in_str.strip().replace('-', '')
-    password = calcPassword(inHash)
-    print(("The master password is: " + password))
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
+
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

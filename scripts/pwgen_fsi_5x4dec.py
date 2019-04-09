@@ -23,6 +23,8 @@
 
 import os
 
+from scripts.solver import Solver, SolverError
+
 # someone smacked his head onto the keyboard
 XORkey = ":3-v@e4i"
 
@@ -82,6 +84,28 @@ def decryptCode_new(code):
         i += 1
     return masterPwd
 
+def fsi5x4OldSolver(in_str):
+    in_str = in_str.strip().replace('-', '')
+    return decryptCode_old(codeToBytes(in_str))
+
+def fsi5x4NewSolver(in_str):
+    in_str = in_str.strip().replace('-', '')
+    return decryptCode_new(in_str)
+
+def solvers():
+    return [
+        Solver('Fujitsu-Siemens',
+               'Fujitsu-Siemens 5x4 decimal (old)',
+               ['1234-4321-1234-4321-1234'],
+               r'^\s*\d{4}-\d{4}-\d{4}-\d{4}-\d{4}\s*$',
+               fsi5x4OldSolver),
+        Solver('Fujitsu-Siemens',
+               'Fujitsu-Siemens 5x4 decimal (new)',
+               ['1234-4321-1234-4321-1234'],
+               r'^\s*\d{4}-\d{4}-\d{4}-\d{4}-\d{4}\s*$',
+               fsi5x4NewSolver),
+    ]
+
 def info():
     return '\n'.join([
         "Master Password Generator for FSI laptops (5x4 digits version)",
@@ -98,15 +122,19 @@ def info():
         "Please note that the password is encoded for US QWERTY keyboard layouts.",
     ])
 
-def run(in_str = None):
+def run(in_str=None):
     if in_str is None:
         print(info())
         in_str = input("Please enter the hash: ")
 
-    inHash = in_str.strip().replace('-', '')
-    password_old = decryptCode_old(codeToBytes(inHash))
-    password_new = decryptCode_new(inHash)
-    print(("The master password is: " + password_old + " OR " + password_new))
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
+
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

@@ -19,6 +19,8 @@
 
 import os
 
+from scripts.solver import Solver, SolverError
+
 rotationMatrix1 = [7, 1, 5, 3, 0, 6, 2, 5, 2, 3, 0, 6, 1, 7, 6, 1, 5, 2, 7, 1, 0, 3, 7, 6, 1, 0, 5, 2, 1, 5, 7, 3, 2, 0, 6]
 rotationMatrix2 = [1, 6, 2, 5, 7, 3, 0, 7, 1, 6, 2, 5, 0, 3, 0, 6, 5, 1, 1, 7, 2, 5, 2, 3, 7, 6, 2, 1, 3, 7, 6, 5, 0, 1, 7]
 
@@ -39,7 +41,7 @@ def keyboardEncToAscii(inKey):
         pos += 1
         if c == 0: return out
         if c in keyboardDict: out += keyboardDict[c]
-        else: out += "<U-0x%02x/%d>" % (c,c)
+        else: out += "<U-0x{:02x}/{}>".format(c, c)
     return out
 
 def decryptHash(hash, key, rotationMatrix):
@@ -50,6 +52,37 @@ def decryptHash(hash, key, rotationMatrix):
         except:
             return outhash
     return outhash
+
+def samsungSolver(in_str):
+    hash = []
+    for i in range(1, len(in_str) // 2):
+        hash.append(int(in_str[2*i] + in_str[2*i+1], 16))
+    key = int(in_str[0:2], 16) % 5
+
+    result1 = decryptHash(hash, key, rotationMatrix1)
+    scancode1 = keyboardEncToAscii(result1)
+    ascii1 = "".join([chr(c & 0xff) for c in result1])
+    hex1 = "".join([hex(c) for c in result1])
+
+    result2 = decryptHash(hash, key, rotationMatrix2)
+    scancode2 = keyboardEncToAscii(result2)
+    ascii2 = "".join([chr(c & 0xff) for c in result2])
+    hex2 = "".join([hex(c) for c in result2])
+
+    if len(result1) == 0 and len(result2) == 0:
+        raise SolverError("The password could not be calculated")
+
+    return [scancode1, ascii1, hex1, scancode2, ascii2, hex2]
+
+
+def solvers():
+    return [
+        Solver('Samsung',
+               'Samsung 12 hexadecimal digits',
+               ['07088120410C0000'],
+               r'^\s*[0-9a-fA-F]{12}|[0-9a-fA-F]{14}|[0-9a-fA-F]{16}|[0-9a-fA-F]{18}\s*$',
+               samsungSolver),
+    ]
 
 def info():
     return '\n'.join([
@@ -66,36 +99,14 @@ def run(in_str = None):
         print(info())
         in_str = input("Please enter the code: ")
 
-    code = in_str
-    hash = []
-    for i in range(1, len(code) // 2):
-        hash.append(int(code[2*i]+code[2*i+1],16))
-    key = int(code[0:2], 16) % 5
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
 
-    hexPwd = ""
-    asciiPwd = ""
-    for x in decryptHash(hash, key, rotationMatrix1):
-        hexPwd += "%02x" % x
-        asciiPwd += chr(x)
-    print("First Key")
-    print("Scancode Password: %s" % keyboardEncToAscii(decryptHash(hash, key, rotationMatrix1)))
-    print("ASCII Password   : %s" % asciiPwd)
-    print("Hex Password     : %s" % hexPwd)
-    print("")
-
-    hexPwd = ""
-    asciiPwd = ""
-    for x in decryptHash(hash, key, rotationMatrix2):
-        hexPwd += "%02x" % x
-        asciiPwd += chr(x)
-    print("Second Key")
-    print("Scancode Password: %s" % keyboardEncToAscii(decryptHash(hash, key, rotationMatrix2)))
-    print("ASCII Password   : %s" % asciiPwd)
-    print("Hex Password     : %s" % hexPwd)
-    print("")
-
-    if asciiPwd == "":
-        print("The password could not be calculated. Bummer.")
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

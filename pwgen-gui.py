@@ -8,7 +8,7 @@ import traceback
 
 import PySimpleGUI as sg
 
-from about import ABOUT_TEXT, ABOUT_IMAGE_BASE64
+from about import ABOUT_TEXT
 from license import LICENSE
 
 from scripts import pwgen_5dec
@@ -23,134 +23,28 @@ from scripts import pwgen_samsung
 from scripts import pwgen_sony_4x4
 from scripts import pwgen_sony_serial
 
+from scripts.solver import SolverError
+
 VERSION_MAJOR = 0
 VERSION_MINOR = 1
 VERSION_PATCH = 0
 VERSION_STR = '{}.{}.{}'.format(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 
 MODULES = [
-    {
-        'vendor': 'Asus',
-        'encoding': 'Machine Date',
-        'example': '01-01-2011',
-        'validation': re.compile(r'\s*\d{2}-\d{2}-\d{4}\s*'),
-        'module': pwgen_asus,
-    },
-    {
-        'vendor': 'Compaq',
-        'encoding': '5 decimal digits',
-        'example': '12345',
-        'validation': re.compile(r'\s*\d{5}\s*'),
-        'module': pwgen_5dec,
-    },
-    {
-        'vendor': 'Dell',
-        'encoding': 'serial number',
-        'example': '1234567-595B',
-        'validation': re.compile(r'\s*\w{7}-\w{4}\s*'),
-        'module': pwgen_dell,
-    },
-    {
-        'vendor': 'Fujitsu-Siemens',
-        'encoding': '5 decimal digits',
-        'example': '12345',
-        'validation': re.compile(r'\s*\d{5}\s*'),
-        'module': pwgen_5dec,
-    },
-    {
-        'vendor': 'Fujitsu-Siemens',
-        'encoding': '8 hexadecimal digits',
-        'example': 'DEADBEEF',
-        'validation': re.compile(r'\s*[0-9a-fA-F]{8}\s*'),
-        'module': pwgen_fsi_hex,
-    },
-    {
-        'vendor': 'Fujitsu-Siemens',
-        'encoding': '5x4 hexadecimal digits',
-        'example': 'AAAA-BBBB-CCCC-DEAD-BEEF',
-        'validation': re.compile(r'\s*[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}\s*'),
-        'module': pwgen_fsi_hex,
-    },
-    {
-        'vendor': 'Fujitsu-Siemens',
-        'encoding': '5x4 decimal digits',
-        'example': '1234-4321-1234-4321-1234',
-        'validation': re.compile(r'\s*\d{4}-\d{4}-\d{4}-\d{4}-\d{4}\s*'),
-        'module': pwgen_fsi_5x4dec,
-    },
-    {
-        'vendor': 'Fujitsu-Siemens',
-        'encoding': '6x4 decimal digits',
-        'example': '8F16-1234-4321-1234-4321-1234',
-        'validation': re.compile(r'\s*[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}\s*'),
-        'module': pwgen_fsi_6x4dec,
-    },
-    {
-        'vendor': 'Hewlett-Packard',
-        'encoding': '5 decimal digits',
-        'example': '12345',
-        'validation': re.compile(r'\s*\d{5}\s*'),
-        'module': pwgen_5dec,
-    },
-    {
-        'vendor': 'Hewlett-Packard/Compaq Netbooks',
-        'encoding': '10 characters',
-        'example': 'CNU1234ABC',
-        'validation': re.compile(r'\s*\w{10}\s*'),
-        'module': pwgen_hpmini,
-    },
-    {
-        'vendor': 'Insyde H20 (generic)',
-        'encoding': '8 decimal digits',
-        'example': '03133610',
-        'validation': re.compile(r'\s*\d{8}\s*'),
-        'module': pwgen_insyde,
-    },
-    {
-        'vendor': 'Phoenix (generic)',
-        'encoding': '5 decimal digits',
-        'example': '12345',
-        'validation': re.compile(r'\s*\d{5}\s*'),
-        'module': pwgen_5dec,
-    },
-    { # TODO this is currently broken
-        'vendor': 'Sony',
-        'encoding': '4x4 hexadecimal digits',
-        'example': '1234-1234-1234-1234',
-        'validation': re.compile(r'\s*\d{4}-\d{4}-\d{4}-\d{4}\s*'),
-        'module': pwgen_sony_4x4,
-    },
-    {
-        'vendor': 'Sony',
-        'encoding': '7 digit serial number',
-        'example': '1234567',
-        'validation': re.compile(r'\s*\d{7}\s*'),
-        'module': pwgen_sony_serial,
-    },
-    { # TODO this is currently broken
-        'vendor': 'Samsung',
-        'encoding': '12 hexadecimal digits',
-        'example': '07088120410C0000',
-        'validation': re.compile(r'\s*[0-9a-fA-F]{12}\s*'),
-        'module': pwgen_samsung,
-    },
+    pwgen_5dec,
+    pwgen_asus,
+    pwgen_dell,
+    pwgen_fsi_5x4dec,
+    pwgen_fsi_6x4dec,
+    pwgen_fsi_hex,
+    pwgen_hpmini,
+    pwgen_insyde,
+    pwgen_samsung,
+    pwgen_sony_4x4,
+    pwgen_sony_serial,
 ]
 
-MODULE_NAMES = ['{}, {} ({})'.format(m['vendor'], m['encoding'], m['example']) for m in MODULES]
-
-MODULE_TAG = 'Module'
 INPUT_TAG = 'Input'
-
-def selected_module(name):
-    try:
-        idx = MODULE_NAMES.index(name)
-
-        if idx < 0 and idx >= len(MODULES):
-            return None
-
-        return MODULES[idx]
-    except ValueError:
-        return None
 
 def main():
     # Parse program arguments
@@ -207,6 +101,11 @@ def main():
         sys.exit(1)
 
     try:
+        # Load the solvers
+        solvers = []
+        for module in MODULES:
+            solvers.extend(module.solvers())
+
         # Format the about page information
         about_body = '\n'.join([
             'Pwgen GUI {}'.format(VERSION_STR),
@@ -214,41 +113,49 @@ def main():
             ABOUT_TEXT,
         ])
 
-        # Find the longest info text
-        info_maxlines = 0
-        for module in MODULES:
-            lines = len(module['module'].info().splitlines())
-            if lines > info_maxlines:
-                info_maxlines = lines
-
-        info_text = sg.Text(MODULES[0]['module'].info(), size=(78, info_maxlines))
-
         # Set up GUI components
         menu = [
             ['&File', 'E&xit'],
             ['&Help', ['&License', '&About']],
         ]
 
-        layout = [
+        info_header_layout = [[
+            sg.Text('Vendor', size=(25, 1)),
+            sg.Text('Info', size=(35, 1)),
+            sg.Text('Examples', size=(30, 1)),
+        ]]
+
+        info_body_layout = []
+        solvers.sort(key=lambda solver: solver.vendor)
+        for solver in solvers:
+            info_body_layout.append([
+                sg.Text(solver.vendor, size=(25, 1)),
+                sg.Text(solver.description, size=(35, 1)),
+                sg.Text('\n'.join(solver.example), size=(30, len(solver.example))),
+            ])
+
+        info_header_column = sg.Column(info_header_layout)
+        info_body_column = sg.Column(info_body_layout, scrollable=True,
+                                     vertical_scroll_only=True)
+
+        info_column = sg.Column([[info_header_column],
+                                 [info_body_column]])
+
+        window_layout = [
             [sg.Menu(menu)],
-            [sg.Text('Modules'),
-             sg.InputCombo(MODULE_NAMES,
-                           enable_events=True,
-                           key=MODULE_TAG,
-                           readonly=True)],
-            [sg.Frame('Module Info', [[info_text]], size=(80, 100))],
             [sg.Text('Input'),
              sg.InputText('', key=INPUT_TAG, do_not_clear=True),
              sg.Button('Run', bind_return_key=True)],
             [sg.Text('Output')],
-            [sg.Output(size=(80, 20))],
+            [sg.Output(size=(98, 20), pad=(20, 5))],
+            [info_column],
         ]
 
         # Tried resizable=True, but since the inner components do not resize
         # properly, it is not very useful.
         window = sg.Window('Pwgen GUI', auto_size_text=True,
                            auto_size_buttons=True, grab_anywhere=False)
-        window.Layout(layout)
+        window.Layout(window_layout)
 
         # Main loop
         try:
@@ -269,39 +176,47 @@ def main():
                     # TODO about contents
                     sg.Popup('About', about_body)
 
-                # Show module info
-                if event == MODULE_TAG and MODULE_TAG in values:
-                    module = selected_module(values[MODULE_TAG])
-                    if module:
-                        info_text.Update(value=module['module'].info())
-
-                # Run module
-                if event == 'Run' and INPUT_TAG in values and MODULE_TAG in values:
-                    module = selected_module(values[MODULE_TAG])
-
+                # Handle input
+                if event == 'Run' and INPUT_TAG in values:
                     # Do nothing, if input is empty
-                    if module and values[INPUT_TAG]:
-                        module_input = values[INPUT_TAG]
-                        logger.info('Running module with input: \'%s\'', module_input)
-                        print('Running module with input: \'{}\''.format(module_input))
+                    if values[INPUT_TAG]:
+                        solver_input = values[INPUT_TAG]
+                        logger.info('Running solvers for input: %s',
+                                    solver_input)
+                        print('Running solvers for input: {}'.format(solver_input))
                         window.Refresh()
 
-                        # Check if input matches the validation regex
-                        if module['validation'].match(module_input):
-                            try:
-                                module['module'].run(values[INPUT_TAG])
-                            except:
-                                formatted_lines = traceback.format_exc()
-                                logger.error('Error while running module.'
-                                             ' Check if the input has the correct format.')
-                                logger.error(formatted_lines)
-                                print('Error while running module.'
-                                      ' Check if the input has the correct format.')
-                                print(formatted_lines)
-                        else:
-                            logger.error('Invalid input: \'%s\'', module_input)
-                            print('Invalid input: \'{}\''.format(module_input))
+                        # Run solvers
+                        found_solver = False
+                        for solver in solvers:
+                            if solver.is_valid_input(solver_input):
+                                found_solver = True
+                                info_str = solver.description
+                                try:
+                                    password = solver.solve(solver_input)
+                                    logger.info('* %s: %s', info_str, password)
+                                    print('* {}: {}'.format(info_str, password))
+                                    window.Refresh()
+                                except SolverError as e:
+                                    logger.error('* %s: [ERROR] %s', info_str, e)
+                                    print('* {}: [ERROR] {}'.format(info_str, e))
+                                    window.Refresh()
+                                except:
+                                    formatted_lines = traceback.format_exc()
+                                    logger.error('Error while running solver.'
+                                                 ' Check if the input has the correct format.')
+                                    logger.error(formatted_lines)
+                                    print('Error while running solver.'
+                                          ' Check if the input has the correct format.')
+                                    print(formatted_lines)
+                                    window.Refresh()
+
+                        if not found_solver:
+                            logger.info('No solvers found for input: %s',
+                                        solver_input)
+                            print('No solvers found for input: {}'.format(solver_input))
                             window.Refresh()
+
         finally:
             window.Close()
     except:

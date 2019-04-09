@@ -19,13 +19,15 @@
 
 import os, struct
 
+from scripts.solver import Solver, SolverError
+
 otpChars = "9DPK7V2F3RT6HX8J"
 pwdChars = "47592836"
 
 def decodeHash(hashCode):
-    s = ""
-    for c in range(len(hashCode)//2):
-        s = chr(otpChars.find(hashCode[2*c])*16+otpChars.find(hashCode[2*c+1])) + s
+    s = bytearray(len(hashCode) // 2)
+    for i in range(len(s)):
+        s[len(s) - i - 1] = otpChars.find(hashCode[i * 2]) * 16 + otpChars.find(hashCode[i * 2 + 1])
     return s
 
 def encodePassword(d):
@@ -90,6 +92,19 @@ def getMasterPwd(hashCode):
     d = rsaDecrypt(a)
     return encodePassword(d)
 
+def sony4x4Solver(in_str):
+    in_str = in_str.replace("-", "").replace(" ", "").upper()
+    return getMasterPwd(in_str)
+
+def solvers():
+    return [
+        Solver('Sony',
+               'Sony 4x4 digits [9DPK7V2F3RT6HX8J]',
+               ['73KR-3FP9-PVKH-K29R'],
+               r'^\s*[9DPK7V2F3RT6HX8J]{4}-[9DPK7V2F3RT6HX8J]{4}-[9DPK7V2F3RT6HX8J]{4}-[9DPK7V2F3RT6HX8J]{4}\s*$',
+               sony4x4Solver),
+    ]
+
 def info():
     return '\n'.join([
         "Master Password Generator for Sony laptops (16 characters otp)",
@@ -105,9 +120,14 @@ def run(in_str = None):
         print(info())
         in_str = input("Please enter the code: ")
 
-    code = in_str.replace("-", "").replace(" ", "").upper()
-    password = getMasterPwd(code)
-    print(("The password is: " + password))
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
+
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

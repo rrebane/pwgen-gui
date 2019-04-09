@@ -23,6 +23,8 @@
 
 import os
 
+from scripts.solver import Solver, SolverError
+
 def shuffle1(a1, a2):
     v3 = 2
     for i in range(0, a2):
@@ -84,6 +86,20 @@ def calculatePassword(date, table):
             password += chr(pwdC + ord('0'))
     return password
 
+def asusSolver(in_str):
+    table = initTable(['']*32)
+    in_str = in_str.strip().replace('/', '-').replace('.', '-')
+    return calculatePassword(in_str, table)
+
+def solvers():
+    return [
+        Solver('Asus',
+               'Asus from machine date',
+               ['01-01-2011'],
+               r'^\s*\d{2}-\d{2}-\d{4}\s*$',
+               asusSolver),
+    ]
+
 def info():
     return '\n'.join([
         "Master Password Generator for Asus laptops (system date version)",
@@ -96,16 +112,19 @@ def info():
     ])
 
 def run(in_str = None):
-    table = initTable(['']*32)
-
     if in_str is None:
         print(info())
         in_str = input("Please enter the system date: ")
 
-    in_date = in_str.strip().replace('/', '-').replace('.', '-')
-    password = calculatePassword(in_date, table)
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print("{}: {}".format(solver.description, password))
+            found_solver = True
 
-    print(("The master password is: " + password))
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()

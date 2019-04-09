@@ -23,6 +23,8 @@
 
 import os
 
+from scripts.solver import Solver, SolverError
+
 # d'oh
 def generateCRC16Table():
     table = []
@@ -50,6 +52,23 @@ def hashToString(hash):
 def decryptCode(code, table):
     return hashToString(calculateHash(code[0:4], table)) + hashToString(calculateHash(code[4:8], table))
 
+def fsi5x4HexSolver(in_str):
+    in_str = in_str.replace('-', '')
+    if len(in_str) == 20:
+        in_str = in_str[12:20]
+    table = generateCRC16Table()
+    return decryptCode(in_str.upper(), table)
+
+
+def solvers():
+    return [
+        Solver('Fujitsu-Siemens',
+               'Fujitsu-Siemens 5x4 hexadecimal',
+               ['AAAA-BBBB-CCCC-DEAD-BEEF'],
+               r'^\s*[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}\s*$',
+               fsi5x4HexSolver),
+    ]
+
 def info():
     return '\n'.join([
         "Master Password Generator for FSI laptops (hexadecimal digits version)",
@@ -65,11 +84,14 @@ def run(in_str = None):
         print(info())
         in_str = input("Please enter the code: ")
 
-    in_str = in_str.replace('-', '')
-    if len(in_str) == 20: in_str = in_str[12:20]
-    table = generateCRC16Table()
-    password = decryptCode(in_str.upper(), table)
-    print(("The master password is: " + password))
+    found_solver = False
+    for solver in solvers():
+        if solver.is_valid_input(in_str):
+            password = solver.solve(in_str)
+            print('{}: {}'.format(solver.description, password))
+
+    if not found_solver:
+        print("No solver for given input")
 
 if __name__ == "__main__":
     run()
