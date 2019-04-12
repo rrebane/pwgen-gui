@@ -25,8 +25,8 @@ from scripts import pwgen_sony_serial
 
 from scripts.solver import SolverError
 
-VERSION_MAJOR = 0
-VERSION_MINOR = 1
+VERSION_MAJOR = 1
+VERSION_MINOR = 0
 VERSION_PATCH = 0
 VERSION_STR = '{}.{}.{}'.format(VERSION_MAJOR, VERSION_MINOR, VERSION_PATCH)
 
@@ -45,6 +45,7 @@ MODULES = [
 ]
 
 INPUT_TAG = 'Input'
+RUN_TAG = 'Run'
 
 def main():
     # Parse program arguments
@@ -119,42 +120,50 @@ def main():
             ['&Help', ['&License', '&About']],
         ]
 
-        info_header_layout = [[
-            sg.Text('Vendor', size=(25, 1)),
-            sg.Text('Info', size=(35, 1)),
-            sg.Text('Examples', size=(30, 1)),
-        ]]
+        solver_column = sg.Column([
+            [sg.Text('For internal use only!', text_color='red')],
+            [sg.Text('Input'),
+             sg.InputText('', key=INPUT_TAG, do_not_clear=True),
+             sg.Button(RUN_TAG, bind_return_key=True)],
+            [sg.Text('Output')],
+            [sg.Output(size=(80, 20))],
+        ])
+        solver_frame = sg.Frame('Generate password', [[solver_column]])
 
-        info_body_layout = []
+        info_vendor_layout = [[sg.Text('Vendor')]]
+        info_desciption_layout = [[sg.Text('Info')]]
+        info_example_layout = [[sg.Text('Examples')]]
+
         solvers.sort(key=lambda solver: solver.vendor)
         for solver in solvers:
-            info_body_layout.append([
-                sg.Text(solver.vendor, size=(25, 1)),
-                sg.Text(solver.description, size=(35, 1)),
-                sg.Text('\n'.join(solver.example), size=(30, len(solver.example))),
-            ])
+            info_vendor_layout.append([sg.Text(solver.vendor, size=(None, len(solver.example)))])
+            info_desciption_layout.append([sg.Text(solver.description, size=(None, len(solver.example)))])
+            info_example_layout.append([sg.Text('\n'.join(solver.example), size=(None, len(solver.example)))])
 
-        info_header_column = sg.Column(info_header_layout)
-        info_body_column = sg.Column(info_body_layout, scrollable=True,
-                                     vertical_scroll_only=True)
+        info_body_layout = [
+            [sg.Column(info_vendor_layout),
+             sg.Column(info_desciption_layout),
+             sg.Column(info_example_layout)],
+        ]
+        info_column = sg.Column(info_body_layout, scrollable=True,
+                                vertical_scroll_only=True)
 
-        info_column = sg.Column([[info_header_column],
-                                 [info_body_column]])
+        info_frame = sg.Frame('Available generators', [[info_column]])
 
         window_layout = [
             [sg.Menu(menu)],
-            [sg.Text('Input'),
-             sg.InputText('', key=INPUT_TAG, do_not_clear=True),
-             sg.Button('Run', bind_return_key=True)],
-            [sg.Text('Output')],
-            [sg.Output(size=(98, 20), pad=(20, 5))],
-            [info_column],
+            [sg.Column([
+                [solver_frame],
+                [info_frame],
+            ])]
         ]
 
         # Tried resizable=True, but since the inner components do not resize
         # properly, it is not very useful.
-        window = sg.Window('Pwgen GUI', auto_size_text=True,
-                           auto_size_buttons=True, grab_anywhere=False)
+        window = sg.Window('Pwgen GUI',
+                           auto_size_text=True,
+                           auto_size_buttons=True,
+                           element_padding=(3, 3))
         window.Layout(window_layout)
 
         # Main loop
@@ -177,7 +186,7 @@ def main():
                     sg.Popup('About', about_body)
 
                 # Handle input
-                if event == 'Run' and INPUT_TAG in values:
+                if event == RUN_TAG and INPUT_TAG in values:
                     # Do nothing, if input is empty
                     if values[INPUT_TAG]:
                         solver_input = values[INPUT_TAG]
