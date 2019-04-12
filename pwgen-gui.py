@@ -182,7 +182,6 @@ def main():
                 elif event == 'License':
                     sg.PopupScrolled('License', '', LICENSE)
                 elif event == 'About':
-                    # TODO about contents
                     sg.Popup('About', about_body)
 
                 # Handle input
