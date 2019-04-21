@@ -11,7 +11,7 @@ A thin wrapper around some BIOS password generation scripts
 
 ```
 virtualenv pwgen-gui-virtualenv
-source pwgen-gui-virtualenv
+source pwgen-gui-virtualenv/bin/activate
 pip install pyinstaller pysimplegui
 ```
 
@@ -32,5 +32,6 @@ pyinstaller --windowed --onefile pwgen-gui.py
 ### OS X
 
 ```
-pyinstaller --windowed --onefile pwgen-gui.py
+# Install a Python version with the built-in Tcl/Tk
+pyinstaller --windowed --add-binary='/System/Library/Frameworks/Tk.framework/Tk':'tk' --add-binary='/System/Library/Frameworks/Tcl.framework/Tcl':'Tcl' --onefile pwgen-gui.py
 ```
